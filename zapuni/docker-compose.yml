@@ -1,0 +1,41 @@
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    environment:
+      - PORT=8000
+      - MERCADO_PAGO_TOKEN=APP_USR-5576722635004127-052013-18a4c17a7d7ba43339a0b7b2a17a2a48-1378109065
+      - WHATSAPP_SERVICE_URL=http://whatsapp-service:8080
+      # URL pública para o webhook do Mercado Pago (substitua pelo seu domínio)
+      - MERCADO_PAGO_WEBHOOK_URL=https://157.180.23.249:8000/api/mercadopago-webhook
+    depends_on:
+      - whatsapp-service
+    volumes:
+      - ./data:/app/data  # Volume para persistência do banco de dados
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    environment:
+      - REACT_APP_API_URL=http://157.180.23.249:8000
+    restart: unless-stopped
+
+  whatsapp-service:  # Removido o espaço adicional aqui
+    build: 
+      context: ./whatsapp-service
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./whatsapp-service/.wwebjs_auth:/app/.wwebjs_auth
+      - ./whatsapp-service/logs:/app/logs
+    environment:
+      - NODE_ENV=production
+      - WEBHOOK_URL=http://backend:8000/api/whatsapp/webhook
+    restart: unless-stopped
+    command: ["node", "whatsapp-remote.js"]  # Usar o novo script
